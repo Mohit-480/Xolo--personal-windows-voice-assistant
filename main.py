@@ -1,233 +1,144 @@
-import pyttsx3
-import speech_recognition as sr
-import datetime
-import wikipedia
-import webbrowser
-import subprocess
-import operator
-import pyjokes
-import pywhatkit
-import ctypes
 import os
-import time
-import requests
+import datetime
+import webbrowser
+import pywhatkit as kit
+import pyjokes
 import pyautogui
-from bs4 import BeautifulSoup
-from datetime import date
-from urllib.request import urlopen
-engine=pyttsx3.init('sapi5')
-voices=engine.getProperty('voices')
-engine.setProperty('voice',voices[0].id)
+import sched
+import time
+import ctypes
 
+from head.mouth import speak
+from head.ear import listen
+from head.brain import brain
 
+from features.welcome import welcome
+from features.location import get_location
+from features.fetch_weather import fetch_weather
+from features.news import news
+from features.ip_address import get_ip_address
+from features.increase_brightness import increase_brightness
+from features.decrease_brightness import decrease_brightness
+from features.increase_volume import increase_volume
+from features.decrease_volume import decrease_volume
+from features.battery_status import battery_status
 
-def temperature():
-    city=qry.split("in",1)
-    soup=BeautifulSoup(requests.get(f"https://www.google.com/search?q=weather+in+{city[1]}").text,"html.parser")
-    region=soup.find("span",class_="BNeawe tAd8D AP7Wnd")
-    temp=soup.find("div",class_="BNeawe iBp4i AP7Wnd")
-    day=soup.find("div",class_="BNeawe tAd8D AP7Wnd")
-    weather=day.text.split("m", 1)
-    temperature= temp.text.split("C", 1)
-    speak("Its currently "+weather[1]+" and "+temperature[0]+"celcius"+"in"+region.text)
-    print("Its currently "+weather[1]+" and "+temperature[0]+"celcius"+"in"+region.text)
+scheduler = sched.scheduler(time.time, time.sleep)
 
+def take_command():
+    """Take user input and covert them to text"""
+    return listen()
 
-def speak(audio):
-    engine.say(audio)
-    engine.runAndWait()
-
-def wish():
-    h=int (datetime.datetime.now().hour)
-    if h>=0 and h<12:
-       speak("Good Morning!")
-
-    elif h>=12 and h<18:
-        speak("Good Afternoon!")
-
+def handle_commands(query):
+    if "what is my ip" in query or "my ip address" in query or "ip address" in query:
+        get_ip_address()
+    elif "where am i" in query or "my current location" in query or "current location" in query:
+        city = get_location()
+        speak(f"You are currently in {city}.")
+        print(f"You are currently in {city}.")
+    elif "weather" in query or "weather forecast" in query or "current weather" in query or "weather report" in query:
+        city = get_location()
+        if city:
+            fetch_weather(city)
+    elif "tell me some jokes" in query or "tell me a joke" in query or "joke" in query:
+        joke = pyjokes.get_joke()
+        speak(joke)
+    elif "open notepad" in query:
+        speak("Opening Notepad")
+        os.startfile("C:\\Windows\\notepad.exe")
+    elif "open command prompt" in query:
+        speak("Opening Command Prompt")
+        os.system("start cmd")
+    elif "opencalculator" in query:
+        speak("Opening Calculator")
+        os.startfile("C:\\Windows\\System32\\calc.exe")
+    elif "open instagram" in query:
+        speak("Opening Instagram")
+        webbrowser.open("https://www.instagram.com")
+    elif "open whatsapp" in query:
+        speak("Opening WhatsApp")
+        webbrowser.open("https://web.whatsapp.com")
+    elif "open browser" in query or "open brave" in query:
+        os.startfile("C:/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe")
+    elif "open google" in query or "search on google" in query:
+        speak("What should I search on Google?")
+        search_query = take_command()
+        if search_query:
+            webbrowser.open(f"https://www.google.com/search?q={search_query}")
+    elif "open youtube" in query or "youtube" in query:
+        webbrowser.open("https://www.youtube.com")
+    elif "open linkedin" in query:
+        webbrowser.open("https://www.linkedin.com")
+    elif "open facebook" in query:
+        webbrowser.open("https://www.facebook.com")
+    elif "open reddit" in query:
+        webbrowser.open("https://www.reddit.com")
+    elif "open github" in query:
+        webbrowser.open("https://www.github.com/Mohit-480")
+    elif "open my github repository" in query or "github repository" in query:
+        webbrowser.open("https://github.com/Mohit-480?tab=repositories")
+    elif "open" in query:
+        query = query.replace("open", "").strip()
+        pyautogui.press("super")
+        pyautogui.typewrite(query)
+        pyautogui.press("enter")
+    elif query.startswith("play ") or query.startswith("bajao "):
+        song = query.split(' ', 1)[1]
+        speak(f'Playing {song}')
+        kit.playonyt(song)
+    elif "news" in query or "current news" in query:
+        news()
+    elif "increase brightness" in query or "turn up brightness" in query or "increase the brightness" in query:
+        new_brightness = increase_brightness()
+        if new_brightness is not None:
+            speak(f"Brightness increased to {new_brightness}%.")
+    elif "decrease brightness" in query or "turn down brightness" in query or "decrease the brightness" in query:
+        new_brightness = decrease_brightness()
+        if new_brightness is not None:
+            speak(f"Brightness decreased to {new_brightness}%.")
+    elif "increase volume" in query or "turn up volume" in query or "increase the volume" in query:
+        new_volume = increase_volume()
+        if new_volume is not None:
+            speak(f"Volume increased to {new_volume}%.")
+    elif "decrease volume" in query or "turn down volume" in query or "decrease the volume" in query:
+        new_volume = decrease_volume()
+        if new_volume is not None:
+            speak(f"Volume decreased to {new_volume}%.")
+    elif "what is the time" in query or "current time" in query:
+        current_time = datetime.datetime.now().strftime("%I:%M %p")
+        speak(f"The current time is {current_time}.")
+    elif "what is the date" in query or "today's date" in query or "current date" in query or "tell me the current date" in query:
+        current_date = datetime.datetime.now().strftime("%A, %B %d, %Y")
+        speak(f"Today is {current_date}.")
+    elif "battery status" in query or "battery" in query:
+        status = battery_status()
+        speak(status)
+    elif "exit" in query or "goodbye" in query or "stop" in query or "close yourself" in query or "bye" in query or "see you later" in query:
+        speak("Goodbye! Have a nice day.")
+        exit()
+    elif "shutdown system" in query:
+        os.system("shutdown /s /t 1")
+        exit()
+    elif "restart system" in query:
+        os.system("shutdown /r /t 1")
+        exit()
+    elif "lock system" in query or "lock my computer" in query:
+        speak("Locking the system.")
+        ctypes.windll.user32.LockWorkStation()
+    elif "sign out" in query or "log off" in query:
+        speak("Signing you out. Please wait.")
+        os.system("shutdown /l")
+        exit()
     else:
-        speak("Good Evening!")
+        brain(query)
 
-    speak("Hello I am Zolo. How can I assist you?")
-
-def command():
-
-    r=sr.Recognizer()
-    with sr.Microphone() as source:
-        print("Listening speech...")
-        r.pause_threshold=1
-        audio=r.listen(source)
-
-    try:
-        print("Recognizing speech...")
-        qry=r.recognize_google(audio,language='en-in'or 'hi-In')
-        print(f"User said: {qry}\n")
-    except Exception as e:
-        print("Can you repeat please...")
-        return "Sorry I didn't get that!"
-    return qry
-if __name__ == "__main__":
-    wish()
+def xolo():
+    welcome()
     while True:
-        qry= command().lower()
-        if "how are you"in qry or'tum kaise ho' in qry:
-            speak("I'm fine sir, how may i help you ?")
-            
+        query = take_command().strip()
+        if query:
+            handle_commands(query)
+        scheduler.run(blocking=False)
 
-        elif "university name"in qry or 'tum kahan se ho' in qry:
-            speak("Jaypee institute of information technology")
-            
-
-        elif "names of group members" in qry or 'who made you'in qry or 'tumhen kisne banaya hai' in qry:
-            speak("I was made by Mohit, Ashwin, Archit and Janvi")
-            
-
-
-        elif "what can you do" in qry or 'tum kya kar sakte ho' in qry:
-            speak('''i represent the theme BACK TO THE FUTURE. i can do anything you want me to. just give me command''')
-            
-
-        elif "who are you" in qry or 'tum kaun ho' in qry:
-            speak("Sir I am your personal assistant Xolo")
-            
-
-
-        elif 'who is' in qry or 'what is' in qry or 'wikipedia' in qry:
-            speak('Searching...please wait')
-            qry = qry.replace("wikipedia", "")
-            results =  wikipedia.summary(qry, sentences = 2)
-            speak("Accoroding to google")
-            print(results)
-            speak(results)
-            
-
-
-        elif'open youtube' in qry or 'youtube kholo' in qry:
-            webbrowser.open("youtube.com")
-            
-
-            
-        elif 'play' in qry or 'bajao' in qry:
-            song=qry.replace('play',"")
-            speak('playing')
-            pywhatkit.playonyt(song)
-            
-
-
-        elif 'open google' in qry or 'google kholo' in qry:
-            webbrowser.open('https://www.google.co.in/')
-            
-
-
-        elif 'what is the time' in qry or 'can you tell the time' in qry or 'time batao' in qry or 'kya time' in qry or 'time batao' in qry:
-            strTime = datetime.datetime.now().strftime("%I:%M:%S")
-            speak(f"Sir, the time is {strTime}")
-            
-
-
-        elif 'what is the date' in qry or 'can you tell the date' in qry or 'kya din' in qry:
-            strdate = date.today()
-            speak(f"Sir, the date is {strdate}")
-            
-
-
-        elif 'search' in qry :
-            qry = qry.replace("search", "")
-            webbrowser.open(qry)
-            
-
-
-        elif 'why were you made' in qry or 'reason for your existence' in qry:
-            speak("I was created as a project for O S D HACK 2023  ")
-            
-
-
-        elif '143' in qry:
-            speak("I Love You ")
-            
-
-
-        elif '5401314' in qry:
-            speak("I will Love You for a lifetime. i will love you forever")
-            
-
-        
-
-        elif 'lock window' in qry or 'lock system' in qry or 'system lock kar do' in qry:
-                speak("locking the device")
-                ctypes.windll.user32.LockWorkStation()
-                
-
-
-
-        
-        elif "open" in qry:
-            qry = qry.replace("open","")
-            qry= qry.replace("xolo","")
-            pyautogui.press("super")
-            pyautogui.typewrite(qry)
-            pyautogui.press("enter")
-            
-
-
-
-        
-        elif 'shutdown system' in qry or 'computer band kar do' in qry:
-                speak("Hold On a Sec ! Your system is on its way to shut down")
-                os.system('shutdown /s /t 1')
-                
-
-                
-        elif "temperature" in qry or "weather forecast" in qry:
-             temperature()
-             
-
-
-        elif "do some calculations" in qry or "can you calculate" in qry:
-            r = sr.Recognizer()
-            with sr.Microphone() as source:
-                speak("say what you want to calculate, example: 3 plus 3")
-                print("Listening...")
-                r.adjust_for_ambient_noise(source)
-                audio = r.listen(source)
-            my_string=r.recognize_google(audio)
-            print(my_string)
-            def get_operator_fn(op):
-                return {
-                    '+' : operator.add,
-                    '-' : operator.sub,
-                    'x' : operator.mul,
-                    'divided': operator.__truediv__,
-                    }[op]
-            def eval_binary_expr(op1, oper, op2):
-                op1,op2 = int(op1), int(op2)
-                return get_operator_fn(oper)(op1, op2)
-            speak("your result is")
-            speak(eval_binary_expr(*(my_string.split())))
-            
-
-            
-
-        elif "hibernate" in qry or "sleep" in qry or 'sleep mode me jaao'in qry:
-            speak("Hibernating")
-            os.system(r'rundll32.exe powrprof.dll,SetSuspendState Hibernate')
-            
-
-
-        elif "joke sunao" in qry or 'tell jokes' in qry or 'joke' in qry :
-            speak(pyjokes.get_joke())
-            
-
-
-        elif "log of" in qry or "sign out" in qry:
-            speak("Make sure all the application are closed before sign-out")
-            subprocess.call(["shutdown", "/l"])
-            
-
-        elif 'Xolo shutdown' in qry or 'bi' in qry or 'buy' in qry or 'close yourself' in qry or'bye xolo' in qry or 'bye solo' in qry:
-            speak("it was nice serving you but it's time to say good bye")
-            os._exit(0)  
-
-
-       
-
+if __name__ == "__main__":
+    xolo()
